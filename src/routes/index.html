@@ -1,0 +1,294 @@
+<script context=module>
+  import { items, db } from '../store'
+</script>
+
+<svelte:head>
+  <title>Items</title>
+</svelte:head>
+
+{#if adding}
+<div transition:fade>
+  <div id="popupContainer" on:click={hidePopups}>
+    <div id="popupContent">
+      <div class="form">
+        <h2 class="center">Add item</h2>
+        <label for="name">Name</label>
+        <input type="text" name="name" placeholder="Item name" required bind:value="{name}" />
+        <button class="submitButton" on:click="{add}">Add item</button>
+      </div>
+    </div>
+  </div>
+</div>
+{/if}
+
+{#if editing}
+<div transition:fade>
+  <div id="popupContainer" on:click={hidePopups}>
+    <div id="popupContent">
+      <div class="form">
+        <h2 class="center">Edit {selectedItem.name}</h2>
+        <label for="name">Name</label>
+        <input type="text" name="name" placeholder="Item name" required bind:value="{selectedItem.name}" />
+        <button class="submitButton" on:click="{() => save(selectedItem)}">Bewaar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{/if}
+
+{#if removing}
+<div transition:fade>
+  <div id="popupContainer" on:click={hidePopups}>
+    <div id="popupContent">
+      <div class="form">
+        <h2 class="center">Are you sure you want to delete {selectedItem.name}?</h2>
+        <p class="warningMsg">This action will be permanent</p>
+        <div class="center spaced">
+          <button class="smallSubmitButton" on:click="{() => remove(selectedItem)}">Yes</button>
+          <button class="smallSubmitButton" id="cancelButton" on:click="{hidePopups}">No</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{/if}
+
+<div class="center">
+  <button id="popupOpener" on:click="{togglePopup}">Add item</button>
+</div>
+
+<div class="mainContainer">
+  <div class="sideBar">
+    <ul>
+      {#each $items as item}
+      <li>
+        <div on:click="{(e) => select(item, e)}" class="{selectedItem && selectedItem._id === item._id ? 'selected' : '' }">
+          {item.name}
+        </div>
+      </li>
+      {/each}
+    </ul>
+  </div>
+
+  <div class="detailView">
+    {#if selectedItem}
+    <div>
+      <p class="label">
+        Naam
+      </p>
+      {selectedItem.name.trim() || ''}
+    </div>
+    <div class="buttonContainer">
+      <button class="detailButton" on:click="{() => edit(selectedItem)}">Edit</button>
+      <button class="detailButton" on:click="{() => startRemoving(selectedItem)}">Remove</button>
+    </div>
+    {/if}
+  </div>
+</div>
+
+<script>
+  import { fade } from 'svelte/transition';
+  let name = '',
+    adding = false,
+    editing = false,
+    removing = false,
+    selectedItem
+
+  function togglePopup(e) {
+    if (e.target.id === 'popupContainer' || e.target.id === 'popupOpener')
+      adding = !adding
+  }
+  function hidePopups(e) {
+    if (e.target.id === 'popupContainer' || e.target.id === 'cancelButton') {
+      adding = false
+      editing = false
+      removing = false
+    }
+  }
+  async function add() {
+    items.create({
+      name,
+    })
+    adding = false
+  }
+  function edit(item) {
+    selectedItem = item
+    editing = true
+  }
+  async function save(editeditem) {
+    items.update(editeditem._id, {
+      name: editeditem.name || selectedItem.name,
+    })
+    editing = false
+  }
+  function startRemoving(item) {
+    selectedItem = item
+    removing = true
+  }
+  async function remove() {
+    items.destroy(selectedItem._id)
+    removing = false
+  }
+  function select(item, e) {
+    selectedItem = item
+  }
+
+</script>
+
+<style>
+  table {
+    border-collapse: collapse;
+    width: 500px;
+    margin: 0 auto;
+  }
+
+  table td,
+  table th {
+    border-bottom: 1px solid rgb(234, 234, 234);
+    padding: 1em;
+  }
+
+  .center {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .spaced {
+    justify-content: space-evenly;
+  }
+
+  button {
+    outline: none;
+    background-color: white;
+  }
+
+  .editButton {
+    font-size: 1em;
+    border: 0;
+    padding: 10px;
+    color: #999;
+  }
+
+  .detailButton {
+    font-size: 1.5em;
+    padding: 0.5em 1em;
+    border-radius: 5px;
+    border: 1px solid black;
+    flex: 1;
+    margin: 0 1em;
+  }
+
+  .buttonContainer {
+    display: flex;
+    flex-direction: row;
+    margin-top: 1em;
+    max-width: 35em;
+  }
+
+  #popupOpener {
+    font-size: 1.5em;
+    margin-bottom: 1em;
+    padding: 0.5em 1em;
+    border-radius: 5px;
+    border: 1px solid black;
+  }
+
+  .form {
+    width: 350px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  input,
+  textarea {
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 0.5em;
+    margin-bottom: 0.5em;
+  }
+
+  textarea {
+    resize: none;
+    height: 70px;
+  }
+
+  .submitButton {
+    font-size: 1.3em;
+    border-radius: 5px;
+    padding: 0.3em;
+    border-color: black;
+  }
+
+  .smallSubmitButton {
+    width: 150px;
+    padding: 0.5em;
+    font-size: 1.3em;
+    border-radius: 5px;
+    padding: 0.3em;
+    border-color: black;
+  }
+
+  #popupContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+
+  #popupContent {
+    border-radius: 5px;
+    background-color: white;
+    width: 400px;
+    margin: 0 auto;
+    top: 33%;
+    left: 50%;
+    position: fixed;
+    margin-top: -250px;
+    /* Negative half of height. */
+    margin-left: -200px;
+    /* Negative half of width. */
+    padding: 1.3em 0.5em 2.3em;
+  }
+
+  .warningMsg {
+    color: #aa1e1e;
+  }
+
+  .mainContainer {
+    display: flex;
+    flex-direction: row;
+  }
+
+  .detailView {
+    display: flex;
+    flex-direction: column;
+    flex: 5;
+  }
+
+  .detailView > div {
+    white-space: pre-line;
+  }
+
+  .detailView > div > p{
+    margin-bottom: 0;
+  }
+
+  .sideBar {
+    display: flex;
+    flex: 2;
+  }
+
+  .label {
+    font-weight: bold;
+  }
+
+  .selected {
+    color: red;
+  }
+</style>
